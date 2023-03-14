@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.supply.service.SupplyMapper">
+	<select id="getSupplyCnt" parameterType="SupplyVO" resultType="Integer">
+		SELECT	COUNT(*)
+		FROM	${tableName}
+		WHERE	del_dt IS NULL
+			<if test='searchName != "" and searchName != null'>
+				AND name LIKE '%'||#{searchName}||'%'
+			</if>
+			<if test='searchMemberId != "" and searchMemberId != null'>
+				AND member_id = #{searchMemberId}
+			</if>
+			<if test='searchApproveId != "" and searchApproveId != null'>
+				AND approve_id	= #{searchApproveId}
+			</if>
+			AND status IN (''
+				<if test='searchStatus1 != "" and searchStatus1 != null'>
+					, #{searchStatus1}
+				</if>
+				<if test='searchStatus2 != "" and searchStatus2 != null'>
+					, #{searchStatus2}
+				</if>
+				<if test='searchStatus3 != "" and searchStatus3 != null'>
+					, #{searchStatus3}
+				</if>
+				)
+	</select>
+	<select id="findSupplyAllForMain" parameterType="SupplyVO" resultType="SupplyVO">
+		SELECT	ROWNUM AS rnum, t.*
+		FROM	(SELECT	*
+				FROM	${tableName}
+				WHERE	del_dt IS NULL
+						AND status	= 'R') t
+		WHERE	ROWNUM BETWEEN #{firstIndex} AND #{lastIndex}
+		ORDER	BY rnum
+	</select>
+
+	<select id="findSupplyAll" parameterType="SupplyVO" resultType="SupplyVO">
+		SELECT	t.*
+		FROM	(SELECT	ROW_NUMBER() over(order by crt_dt desc) as rnum, a.*,
+		             	(SELECT name FROM member WHERE id = a.member_id) member_name,
+		             	(SELECT name FROM member WHERE id = a.approve_id) approve_name,
+		             	FN_CODE_NAME(#{statusCd}, a.status) status_name
+				 FROM	${tableName} a
+				 WHERE	a.del_dt IS NULL
+		    	<if test='searchName != "" and searchName != null'>
+						AND a.name LIKE '%'||#{searchName}||'%'
+				</if>
+				<if test='searchMemberId != "" and searchMemberId != null'>
+						AND member_id = #{searchMemberId}
+				</if>
+				<if test='searchApproveId != "" and searchApproveId != null'>
+						AND approve_id	= #{searchApproveId}
+				</if>
+						AND status IN (''
+					<if test='searchStatus1 != "" and searchStatus1 != null'>
+							, #{searchStatus1}
+					</if>
+					<if test='searchStatus2 != "" and searchStatus2 != null'>
+							, #{searchStatus2}
+					</if>
+					<if test='searchStatus3 != "" and searchStatus3 != null'>
+							, #{searchStatus3}
+					</if>
+						)
+              	) t
+		WHERE	rnum BETWEEN #{firstIndex} AND #{lastIndex}
+		ORDER	BY rnum
+	</select>
+
+	<select id="findSupplyById" parameterType="SupplyVO" resultType="SupplyVO">
+		SELECT	id, name, amount, price,shipping_fee, url, url_1, url_2, url_3, url_4, status, member_id, approve_id,
+		       	payment, bill_yn,
+		       	TO_CHAR(crt_dt, 'yyyy.MM.dd') crt_dt,
+		       	TO_CHAR(approve_dt, 'yyyy.MM.dd') approve_dt,
+		       	FN_CODE_NAME(#{statusCd}, status) status_name,
+		       	(SELECT name FROM member WHERE id = a.member_id) member_name,
+				(SELECT name FROM member WHERE id = a.approve_id) approve_name
+		FROM	${tableName} a
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</select>
+
+	<select id="findSupplyAttachById" parameterType="SupplyAttachVO" resultType="SupplyAttachVO">
+		SELECT	a.*
+		FROM	${tableName} a
+				LEFT JOIN ${mainTableName} b
+						ON	a.supply_id	= b.id
+						AND	b.del_dt IS NULL
+		WHERE	a.supply_id	= #{supplyId}
+		  		AND a.del_dt IS NULL
+	</select>
+
+	<insert id="write" parameterType="SupplyVO">
+		<selectKey keyProperty="id" resultType="Integer" order="AFTER">
+			SELECT	SEQ_SUPPLY_ID.currval FROM dual
+		</selectKey>
+		INSERT INTO ${tableName} (
+			name, amount, price,shipping_fee, url, url_1, url_2, url_3, url_4, member_id,
+			payment, bill_yn, approve_id, crt_id, udt_id
+		) VALUES (
+			#{name}, #{amount}, #{price}, #{shippingFee} , #{url}, #{url1}, #{url2}, #{url3}, #{url4}, #{memberId},
+		    #{payment}, #{billYN}, #{approveId}, #{crtId}, #{udtId}
+		)
+	</insert>
+
+	<insert id="writeAttach" parameterType="SupplyAttachVO">
+		INSERT INTO ${tableName} (
+			supply_id, path, original_file_name, stored_file_name, file_size, crt_id
+		) VALUES (
+			#{supplyId}, #{path}, #{originalFileName}, #{storedFileName}, #{fileSize}, #{crtId}
+		)
+	</insert>
+
+	<update id="edit" parameterType="SupplyVO">
+		UPDATE	${tableName}
+		SET 	name		= #{name},
+				amount		= #{amount},
+		    	price		= #{price},
+		    	shipping_fee = #{shippingFee},
+		    	url			= #{url},
+		    	url_1		= #{url1},
+		    	url_2		= #{url2},
+		    	url_3		= #{url3},
+		    	url_4		= #{url4},
+		    	payment     = #{payment},
+		    	bill_yn     = #{billYN},
+		    	approve_id	= #{approveId},
+		    	udt_id		= #{udtId},
+		    	udt_dt		= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<update id="delete" parameterType="SupplyVO">
+		UPDATE	${tableName}
+		SET 	del_id	= #{delId},
+				del_dt	= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<update id="editPayment" parameterType="SupplyVO">
+		UPDATE	${tableName}
+		SET		payment		= #{payment},
+			   	bill_yn		= #{billYN},
+			   	udt_id		= #{udtId},
+			   	udt_dt		= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<update id="editStatus" parameterType="SupplyVO">
+		UPDATE	${tableName}
+		SET		status		= #{status},
+		    	approve_dt	= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<update id="deleteAttach" parameterType="SupplyAttachVO">
+		UPDATE	${tableName}
+		SET 	del_id	= #{delId},
+			   	del_dt	= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<select id="findSupplyAttachByAttachId" parameterType="SupplyAttachVO" resultType="SupplyAttachVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	id	= #{id}
+		  		AND del_dt IS NULL
+	</select>
+</mapper>

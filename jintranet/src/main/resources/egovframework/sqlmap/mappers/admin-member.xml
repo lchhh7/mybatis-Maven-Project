@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.admin.member.service.AdminMemberMapper">
+    <select id="getMemberCnt" parameterType="MemberVO" resultType="Integer">
+        SELECT  COUNT(*)
+        FROM    ${tableName}
+        WHERE   del_dt IS NULL
+            <if test='searchName != "" and searchName != null'>
+                AND name LIKE '%'||#{searchName}||'%'
+            </if>
+            <if test='searchPosition != "" and searchPosition != null'>
+                AND position = #{searchPosition}
+            </if>
+            <if test='searchDepartment != "" and searchDepartment != null'>
+                AND department  =   #{searchDepartment}
+            </if>
+    </select>
+
+    <select id="findAll" parameterType="MemberVO" resultType="MemberVO">
+        SELECT  t.* from (
+SELECT rownum as rnum, id, member_id, name,
+                        NVL(mobile_no, '') AS mobileNo,
+                        NVL(phone_no, '') AS phoneNo,
+                        NVL(position, '') AS position,
+                        NVL(department, '') AS department,
+                        NVL(color, '') AS color,
+                        NVL(card_no, '') AS cardNo,
+                        FN_CODE_NAME(#{positionCd}, position) position_name,
+                        FN_CODE_NAME(#{departmentCd}, department) department_name,
+                        crt_dt, udt_dt
+                FROM    (select * from ${tableName} ORDER BY position DESC, crt_dt, name)
+                WHERE   del_dt IS NULL) t
+                    <if test='searchName != "" and searchName != null'>
+                        AND name LIKE '%'||#{searchName}||'%'
+                    </if>
+                    <if test='searchPosition != "" and searchPosition != null'>
+                        AND position = #{searchPosition}
+                    </if>
+                    <if test='searchDepartment != "" and searchDepartment != null'>
+                        AND department  =   #{searchDepartment}
+                    </if>
+        WHERE   rnum BETWEEN #{firstIndex} AND #{lastIndex}
+        ORDER   BY rnum
+    </select>
+    
+    <select id="findMemberList" parameterType="MemberVO" resultType="MemberVO">
+        SELECT  t.*
+        FROM    (SELECT ROWNUM AS rnum, id, member_id, name,
+                        NVL(mobile_no, '') AS mobileNo,
+                        NVL(phone_no, '') AS phoneNo,
+                        NVL(position, '') AS position,
+                        NVL(department, '') AS department,
+                        NVL(color, '') AS color,
+                        NVL(card_no, '') AS cardNo,
+                        FN_CODE_NAME(#{positionCd}, position) position_name,
+                        FN_CODE_NAME(#{departmentCd}, department) department_name,
+                        crt_dt, udt_dt
+                FROM    (select * from ${tableName} ORDER BY position DESC, crt_dt, name)
+                WHERE   del_dt IS NULL AND id!=1) t
+        ORDER   BY rnum
+    </select>
+
+    <select id="findById" parameterType="MemberVO" resultType="MemberVO">
+        SELECT  ROWNUM AS rnum, id, member_id, name,
+                NVL(mobile_no, '') AS mobileNo,
+                NVL(phone_no, '') AS phoneNo,
+                NVL(position, '') AS position,
+                NVL(department, '') AS department,
+                NVL(color, '') AS color,
+                NVL(card_no, '') AS cardNo,
+                FN_CODE_NAME(#{positionCd}, position) position_name,
+                FN_CODE_NAME(#{departmentCd}, department) department_name,
+                crt_dt, udt_dt
+        FROM    ${tableName}
+        WHERE   del_dt IS NULL
+                AND id  = #{id}
+    </select>
+
+    <insert id="write" parameterType="MemberVO">
+        <selectKey keyProperty="id" resultType="Integer" order="AFTER">
+            SELECT	SEQ_MEMBER_ID.currval FROM dual
+        </selectKey>
+        INSERT INTO ${tableName} (
+            member_id, password, name, phone_no, mobile_no,
+            position, department, color, card_no,
+            crt_id, udt_id
+        ) VALUES (
+            #{memberId}, #{password}, #{name}, #{phoneNo}, #{mobileNo},
+            #{position}, #{department}, #{color}, #{cardNo},
+            #{crtId}, #{udtId}
+        )
+    </insert>
+
+    <update id="edit" parameterType="MemberVO">
+        UPDATE  ${tableName}
+        SET     name            = #{name},
+            <if test='password != "" and password != null'>
+                password        = #{password},
+                password_udt_id = #{udtId},
+            </if>
+                phone_no        = #{phoneNo},
+                mobile_no       = #{mobileNo},
+                position        = #{position},
+                department      = #{department},
+                color           = #{color},
+                card_no         = #{cardNo},
+                udt_id          = #{udtId},
+                udt_dt          = SYSDATE
+        WHERE   id  = #{id}
+    </update>
+
+    <update id="delete" parameterType="MemberVO">
+        UPDATE  ${tableName}
+        SET     del_id  = #{delId},
+                del_dt  = SYSDATE
+        WHERE   id  = #{id}
+    </update>
+</mapper>

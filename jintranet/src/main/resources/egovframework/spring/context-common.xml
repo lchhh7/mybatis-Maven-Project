@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.2.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan base-package="com.jinjin.jintranet">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <bean id="messageSource"
+          class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+        <property name="basenames">
+            <list>
+                <value>classpath:/egovframework/message/message-common</value>
+                <value>classpath:/egovframework/rte/fdl/idgnr/messages/idgnr</value>
+                <value>classpath:/egovframework/rte/fdl/property/messages/properties</value>
+            </list>
+        </property>
+        <property name="cacheSeconds">
+            <value>5</value>
+        </property>
+    </bean>
+
+    <bean id="leaveaTrace" class="egovframework.rte.fdl.cmmn.trace.LeaveaTrace">
+        <property name="traceHandlerServices">
+            <list>
+                <ref bean="traceHandlerService"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="traceHandlerService"
+          class="egovframework.rte.fdl.cmmn.trace.manager.DefaultTraceHandleManager">
+        <property name="reqExpMatcher">
+            <ref bean="antPathMater"/>
+        </property>
+        <property name="patterns">
+            <list>
+                <value>*</value>
+            </list>
+        </property>
+        <property name="handlers">
+            <list>
+                <ref bean="defaultTraceHandler"/>
+            </list>
+        </property>
+    </bean>
+
+    <!-- For Pagination Tag -->
+    <bean id="imageRenderer" class="egovframework.example.cmmn.web.EgovImgPaginationRenderer"/>
+
+    <bean id="paginationManager" class="egovframework.rte.ptl.mvc.tags.ui.pagination.DefaultPaginationManager">
+        <property name="rendererType">
+            <map>
+                <entry key="image" value-ref="imageRenderer"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="antPathMater" class="org.springframework.util.AntPathMatcher"/>
+    <bean id="defaultTraceHandler" class="egovframework.rte.fdl.cmmn.trace.handler.DefaultTraceHandler"/>
+
+    <bean id="passwordEncoder" class="egovframework.rte.fdl.cryptography.EgovPasswordEncoder">
+        <property name="algorithm" value="SHA-256"/>
+        <property name="hashedPassword" value="gdyYs/IZqY86VcWhT8emCYfqY1ahw2vtLG+/FzNqtrQ="/>
+    </bean>
+
+    <bean id="ARIACryptoService" class="egovframework.rte.fdl.cryptography.impl.EgovARIACryptoServiceImpl">
+        <property name="passwordEncoder" ref="passwordEncoder"/>
+        <property name="blockSize" value="1025"/>
+    </bean>
+
+    <bean id="digestService" class="egovframework.rte.fdl.cryptography.impl.EgovDigestServiceImpl">
+        <property name="algorithm" value="SHA-256"/>
+        <property name="plainDigest" value="false"/><!-- default : false -->
+    </bean>
+
+    <bean id="generalCryptoService" class="egovframework.rte.fdl.cryptography.impl.EgovGeneralCryptoServiceImpl">
+        <property name="passwordEncoder" ref="passwordEncoder"/>
+        <property name="algorithm" value="PBEWithSHA1AndDESede"/><!-- default : PBEWithSHA1AndDESede -->
+        <property name="blockSize" value="1024"/><!-- default : 1024 -->
+    </bean>
+	
+	<bean id="mailSender" class = "org.springframework.mail.javamail.JavaMailSenderImpl">
+      <property name="host" value="mail.jinjin.co.kr" />
+      <property name="port" value="25" />
+      <property name="username" value="cwkwak@jinjin.co.kr" />
+      <property name="password" value="2@rhkrcjfdnd" />
+      <property name="javaMailProperties">
+         <props>
+               <prop key="mail.transport.protocol">smtp</prop>
+               <prop key="mail.smtp.auth">true</prop>
+               <prop key="mail.debug">true</prop>
+         </props>
+      </property>
+   </bean>
+   
+   <bean id="careerAlarmService" class="com.jinjin.jintranet.addBreak.web.AddBreakController" />
+   <task:scheduler id="gsScheduler" pool-size="10" />
+   <task:executor id="gsTaskExecutor" pool-size="10" />
+   <task:annotation-driven executor="gsTaskExecutor" scheduler="gsScheduler" />
+</beans>

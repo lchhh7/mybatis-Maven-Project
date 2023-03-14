@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.project.service.ProjectMapper">
+	<select id="getProjectCnt" parameterType="ProjectVO" resultType="Integer">
+		SELECT	COUNT(*)
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+			<if test='searchYear != "" and searchYear != null'>
+				AND (SUBSTR(start_dt, 0, 4)	= #{searchYear} or
+				SUBSTR(end_dt, 0, 4)	= #{searchYear})
+			</if>
+			<if test='searchStartDt != "" and searchStartDt != null'>
+				<![CDATA[
+							AND start_dt >= #{searchStartDt}
+							]]>
+			</if>
+			<if test='searchEndDt != "" and searchEndDt != null'>
+				<![CDATA[
+							AND end_dt <= #{searchEndDt}
+							]]>
+			</if>
+			<if test='searchTitle != "" and searchTitle != null'>
+				AND title LIKE '%'||#{searchTitle}||'%'
+			</if>
+			<if test='searchOrderingName != "" and searchOrderingName != null'>
+				AND ordering_name LIKE '%'||#{searchOrderingName}||'%'
+			</if>
+			<if test='searchDepartment != "" and searchDepartment != null'>
+				AND department	= #{searchDepartment}
+			</if>
+	</select>
+
+	<select id="findProjectAll" parameterType="ProjectVO" resultType="ProjectVO">
+		SELECT	t.*,
+		        FN_CODE_NAME(#{departmentCd}, t.department) department_name
+		FROM	(SELECT	ROW_NUMBER() over(order by start_dt desc) as rnum, a.*
+				FROM	${tableName} a
+				WHERE	del_dt IS NULL
+				<if test='searchYear != "" and searchYear != null'>
+						AND (SUBSTR(start_dt, 0, 4)	= #{searchYear} or
+						     SUBSTR(end_dt, 0, 4)	= #{searchYear})
+				</if>
+				<if test='searchStartDt != "" and searchStartDt != null'>
+						<![CDATA[
+						AND start_dt >= #{searchStartDt}
+						]]>
+				</if>
+				<if test='searchEndDt != "" and searchEndDt != null'>
+						<![CDATA[
+						AND end_dt <= #{searchEndDt}
+						]]>
+				</if>
+				<if test='searchTitle != "" and searchTitle != null'>
+						AND title LIKE '%'||#{searchTitle}||'%'
+				</if>
+				<if test='searchOrderingName != "" and searchOrderingName != null'>
+						AND ordering_name LIKE '%'||#{searchOrderingName}||'%'
+				</if>
+				<if test='searchDepartment != "" and searchDepartment != null'>
+						AND department	= #{searchDepartment}
+				</if>
+		    	) t
+		WHERE	rnum BETWEEN #{firstIndex} AND #{lastIndex}
+		ORDER	BY rnum
+	</select>
+
+	<select id="findProjectById" parameterType="ProjectDefaultVO" resultType="ProjectVO">
+		SELECT	a.*, FN_CODE_NAME(#{departmentCd}, a.department) department_name
+		FROM	project a
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</select>
+
+	<select id="findCollaborationCompanyByProjectId" parameterType="ProjectVO" resultType="ProjectVO">
+		SELECT	a.company_id, b.company_name
+		FROM	project_company a
+				LEFT JOIN company b
+						ON a.company_id = b.id
+		WHERE	a.project_id	= #{id}
+		  		AND a.kind	= #{companyKind}
+				AND a.del_dt IS NULL
+	</select>
+
+	<insert id="write" parameterType="ProjectVO">
+		<selectKey keyProperty="id" resultType="Integer" order="AFTER">
+			SELECT	SEQ_PROJECT_ID.currval FROM dual
+		</selectKey>
+		INSERT INTO ${tableName} (
+			title, ordering_name, pps_yn, contract_no, business_field, start_dt, end_dt, launch_dt,
+			amount_surtax_include, amount_surtax_exclude, contract_deposit, contract_deposit_rate,
+			defect_deposit, defect_deposit_rate, consortium_yn, subcontract_yn, department,
+			project_manager_name, performance_regist_yn, implement_dt, crt_id, udt_id
+		) VALUES (
+			#{title}, #{orderingName}, #{ppsYN}, #{contractNo}, #{businessField}, #{startDt}, #{endDt}, #{launchDt},
+		    #{amountSurtaxInclude}, #{amountSurtaxExclude}, #{contractDeposit}, #{contractDepositRate},
+		    #{defectDeposit}, #{defectDepositRate}, #{consortiumYN}, #{subcontractYN}, #{department},
+		    #{projectManagerName}, #{performanceRegistYN}, #{implementDt}, #{crtId}, #{udtId}
+		)
+	</insert>
+
+	<insert id="writeCompany" parameterType="ProjectVO">
+		INSERT INTO ${companyTableName} (
+			kind, project_id, company_id, crt_id
+		) VALUES (
+			#{companyKind}, #{id}, #{companyId}, #{crtId}
+		)
+	</insert>
+
+	<update id="edit" parameterType="ProjectVO">
+		UPDATE	${tableName}
+		SET		title					= #{title},
+		    	ordering_name			= #{orderingName},
+				pps_yn					= #{ppsYN},
+				contract_no				= #{contractNo},
+				business_field			= #{businessField},
+				start_dt				= #{startDt},
+		    	end_dt					= #{endDt},
+				launch_dt				= #{launchDt},
+				amount_surtax_include	= #{amountSurtaxInclude},
+				amount_surtax_exclude	= #{amountSurtaxExclude},
+				contract_deposit		= #{contractDeposit},
+				contract_deposit_rate	= #{contractDepositRate},
+				defect_deposit			= #{defectDeposit},
+				defect_deposit_rate		= #{defectDepositRate},
+				consortium_yn			= #{consortiumYN},
+				subcontract_yn			= #{subcontractYN},
+				department				= #{department},
+				project_manager_name	= #{projectManagerName},
+				performance_regist_yn	= #{performanceRegistYN},
+				implement_dt			= #{implementDt},
+				udt_id					= #{udtId},
+				udt_dt					= SYSDATE
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</update>
+
+	<update id="deleteCollaborationCompany" parameterType="ProjectVO">
+		UPDATE	${companyTableName}
+		SET 	del_id	= #{delId},
+		    	del_dt	= SYSDATE
+		WHERE	project_id	= #{id}
+	</update>
+
+	<update id="delete" parameterType="ProjectVO">
+		UPDATE	${tableName}
+		SET 	del_id	= #{delId},
+				del_dt	= SYSDATE
+		WHERE	id		= #{id}
+	</update>
+	
+	<select id="searchProject" parameterType="ProjectVO" resultType="ProjectVO" >
+		SELECT *
+		FROM ${tableName}
+		WHERE del_dt is NULL
+		<if test='searchStartDt != "" and searchStartDt != null and searchEndDt != "" and searchEndDt != null'>
+		AND to_char(#{searchStartDt},'YYYY') <![CDATA[<=]]> to_char(start_dt,'YYYY')
+		AND to_char(#{searchEndDt},'YYYY') <![CDATA[>=]]> to_char(end_dt,'YYYY')
+		</if>
+		ORDER BY start_dt DESC
+	</select>	
+</mapper>

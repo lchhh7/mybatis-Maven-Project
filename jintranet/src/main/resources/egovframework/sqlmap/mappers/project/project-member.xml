@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.project.service.ProjectMemberMapper">
+   <select id="findProjectMemberByProjectId" parameterType="ProjectDefaultVO" resultType="ProjectMemberVO">
+      SELECT   t.*,
+            (SELECT   company_name FROM company WHERE id = t.company_id) company_name,
+              FN_CODE_NAME(#{projectActionCd}, t.action) action_name
+      FROM   (SELECT   ROW_NUMBER() over(order by a.id desc) as rnum, a.*
+            FROM   ${memberTableName} a
+                  LEFT JOIN   ${tableName} b
+                        ON   a.project_id = b.id
+                        AND   b.del_dt IS NULL
+            WHERE   project_id   = #{id}
+                  AND a.del_dt IS NULL) t
+      WHERE   ROWNUM BETWEEN #{firstIndex} AND #{lastIndex}
+      ORDER   BY ROWNUM
+   </select>
+
+   <insert id="write" parameterType="ProjectMemberVO">
+      INSERT INTO ${memberTableName} (
+         project_id, member_name, company_id, department_name, role, action,
+         man_month, man_start_dt, man_end_dt, crt_id, udt_id
+      ) VALUES (
+         #{projectId}, #{memberName}, #{companyId}, #{departmentName}, #{role}, #{action},
+         #{manMonth}, #{manStartDt}, #{manEndDt}, #{crtId}, #{udtId}
+      )
+   </insert>
+
+   <update id="edit" parameterType="ProjectMemberVO">
+      UPDATE   ${memberTableName}
+      SET    company_id      = #{companyId},
+             member_name      = #{memberName},
+             role          = #{role},
+             action          = #{action},
+            department_name      = #{departmentName},
+             man_month      = #{manMonth},
+             man_start_dt   = #{manStartDt},
+            man_end_dt      = #{manEndDt},
+            udt_id         = #{udtId},
+             udt_dt         = SYSDATE
+      WHERE   id   = #{id}
+   </update>
+
+   <update id="delete" parameterType="ProjectMemberVO">
+      UPDATE   ${memberTableName}
+      SET    del_id   = #{delId},
+            del_dt   = SYSDATE
+      WHERE   id      = #{id}
+   </update>
+
+   <select id="findProjectMemberById" parameterType="ProjectMemberVO" resultType="ProjectMemberVO">
+      SELECT   a.*, b.start_dt, b.end_dt,
+              (SELECT   company_name FROM company WHERE id = a.company_id) company_name,
+            FN_CODE_NAME(#{projectActionCd}, a.action) action_name
+      FROM   ${memberTableName} a
+            LEFT JOIN ${tableName} b
+                  ON a.project_id   = b.id
+                  AND b.del_dt IS NULL
+      WHERE   a.id   = #{id}
+            AND a.del_dt IS NULL
+   </select>
+
+</mapper>

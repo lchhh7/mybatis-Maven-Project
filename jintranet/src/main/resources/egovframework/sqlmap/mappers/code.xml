@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.code.service.CodeMapper">
+	<select id="findCodeAll" parameterType="CodeVO" resultType="CodeVO">
+		SELECT	ROWNUM AS rnum, t.*
+		FROM	(SELECT	id, title
+				FROM	${tableName}
+				WHERE	del_dt IS NULL) t
+		ORDER	BY rnum
+	</select>
+
+	<select id="findCodeByMajorCd" parameterType="CodeVO" resultType="CodeVO">
+		SELECT	id, major_cd, minor_cd, code_name, code_fg, code_ord
+		FROM	${tableName}
+		WHERE	major_cd	= #{majorCd}
+				AND del_dt IS NULL
+	</select>
+
+	<select id="findCodeByMajorCdAndCodeFg" parameterType="CodeVO" resultType="CodeVO">
+		SELECT	id, major_cd, minor_cd, code_name, code_fg, code_ord
+		FROM	${tableName}
+		WHERE	major_cd	= #{majorCd}
+		  		AND code_fg	= #{codeFg}
+		  		AND del_dt IS NULL
+	</select>
+</mapper>

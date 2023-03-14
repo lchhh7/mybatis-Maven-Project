@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.holiday.service.HolidayMapper">
+    <select id="findAll" parameterType="HolidayVO" resultType="HolidayVO">
+        SELECT  *
+        FROM    ${tableName}
+        WHERE   holiday_dt
+            BETWEEN	TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+            AND 	TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+    </select>
+     <select id="holidayCheck" parameterType="HolidayVO" resultType="Integer">
+        SELECT  count(*)
+        FROM    ${tableName}
+        WHERE   holiday_dt = #{searchStartDt}
+    </select>
+    
+    <select id="currentYearRedDay" parameterType="HolidayVO" resultType="String">
+        SELECT  holiday_dt
+        FROM    ${tableName}
+        WHERE   to_char(holiday_dt,'YYYY') = to_char(SYSDATE,'YYYY')
+    </select>
+</mapper>

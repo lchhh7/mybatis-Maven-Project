@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.commuting.service.CommutingCalculateMapper">
+	<insert id="write" parameterType="commutingRequestVO">
+		insert into ${subtableName} (
+			 request_id , member_id , status , request_dt , start_tm , end_tm , pure_work_tm , extension_work_tm , extension_night_work_tm , total_tm
+			 , crt_id , udt_id , del_id , crt_dt , udt_dt , del_dt)
+		values(#{requestId},#{memberId},'R',#{requestDt},#{startTm},#{endTm},#{pureWorkTm},#{extensionWorkTm},#{extensionNightWorkTm}, #{totalTm}
+		,#{crtId},null,null,SYSDATE,null,null)
+	</insert>
+	
+	<update id="approve" parameterType="commutingRequestVO">
+		UPDATE	${subtableName}
+		SET 	status = #{status}
+		WHERE	request_id = #{requestId}
+				AND del_dt IS NULL
+	</update>
+	
+	<update id="approveInit" parameterType="CommutingRequestVO">
+        UPDATE  ${subtableName}
+        SET     status      = 'R',
+                UDT_ID = #{memberId},
+                UDT_DT = SYSDATE
+        WHERE   request_id  = #{requestId}
+    </update>
+	
+	<update id="edit" parameterType="commutingRequestVO">
+		UPDATE	${subtableName}
+		SET 	request_dt	= #{requestDt},
+		    	start_tm    = #{startTm},
+		    	end_tm      = #{endTm},
+		    	pure_work_tm= #{pureWorkTm},
+		    	extension_work_tm= #{extensionWorkTm},
+		    	extension_night_work_tm= #{extensionNightWorkTm},
+		    	total_tm= #{totalTm},
+		    	udt_id		= #{udtId},
+		    	udt_dt		= SYSDATE
+		WHERE	request_id	= #{requestId}
+				AND member_id   = #{memberId}
+				AND status =#{statusReadyCd}
+				AND del_dt IS NULL
+	</update>
+
+	<update id="delete" parameterType="commutingRequestVO">
+		UPDATE  ${subtableName}
+		SET		del_dt = SYSDATE
+		WHERE	id	= #{id} 
+	</update>
+	
+	<delete id="deleteCascade" parameterType="commutingRequestVO">
+		delete from ${subtableName}
+		WHERE	request_id = #{requestId} 
+	</delete>
+	
+	<select id="search" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+	select request_dt,pure_work_tm , extension_work_tm , extension_night_work_tm , total_tm 
+	from ${subtableName}
+	 where member_id=#{searchMemberId}
+	 AND request_dt BETWEEN	TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+	 AND 	TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+	 AND status ='Y'
+	 AND del_dt is null
+	 order by request_dt asc
+	</select>
+	
+	<select id="recodeSearch" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+	select *
+	from ${subtableName}
+	 where member_id=#{memberId}
+	 AND request_dt =#{requestDt}
+	 AND del_dt is null
+	</select>
+	
+	<select id="detailSearchByExcel2" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+	select *
+	from ${subtableName}
+	 where request_dt BETWEEN	TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+	 AND 	TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+	 AND status ='Y'
+	 AND del_dt is null
+	 order by member_id , request_dt
+	</select>
+	
+	<select id="detailSearchByExcel" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+	select c.* ,(select name from member where r.approve_id = member.id) as approve_name
+    from ${subtableName} c ,${tableName} r
+     where c.request_dt BETWEEN    TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+     AND     TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+     AND c.status ='Y'
+     AND c.del_dt is null
+     AND c.request_id = r.id
+     order by c.member_id , c.request_dt
+	</select>
+	
+	<select id="findByRequestId" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+	select *
+	from ${subtableName}
+	 where member_id=#{memberId}
+	 AND request_dt BETWEEN	TO_DATE(#{requestDt}, 'yyyy-MM-dd')
+	 AND TO_DATE(#{requestDt}, 'yyyy-MM-dd')
+	 AND  request_id = #{requestId}
+	 AND del_dt is null
+	</select>
+</mapper>

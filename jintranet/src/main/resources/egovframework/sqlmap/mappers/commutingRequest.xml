@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.commuting.service.CommutingRequestMapper">
+	<insert id="writeAddBreak" parameterType="commutingRequestVO">
+		insert into ${tableName} (
+			type, member_id, request_dt, content, approve_id, crt_id, udt_id)
+		values(#{type},#{memberId},#{requestDt},#{content},#{approveId},#{crtId},#{udtId})
+	</insert>
+	
+	<insert id="writeCommute" parameterType="commutingRequestVO">
+		insert into ${tableName} (
+			type, member_id, request_dt, content, approve_id, crt_id, udt_id,request_tm)
+		values(#{type},#{memberId},#{requestDt},#{content},#{approveId},#{crtId},#{udtId},#{requestTm})
+	</insert>
+	
+	<insert id="editCommute" parameterType="commutingRequestVO">
+		insert into ${tableName} (
+			type, member_id, request_dt, content, approve_id, crt_id, udt_id,request_tm)
+		values(#{type},#{memberId},#{requestDt},#{content},#{approveId},#{crtId},#{udtId},#{requestTm})
+	</insert>
+
+	<update id="editRequest" parameterType="commutingRequestVO">
+		UPDATE	${tableName}
+		SET 	request_dt	= #{requestDt},
+		    	request_tm	= #{requestTm},
+		    	content		= #{content},
+		    	udt_id		= #{udtId},
+		    	udt_dt		= SYSDATE
+		WHERE	id	= #{id}
+				AND status =#{statusReadyCd}
+				AND del_dt IS NULL
+	</update>
+
+	<delete id="deleteRequest" parameterType="commutingRequestVO">
+		DELETE  
+		FROM 	${tableName}
+		WHERE	id	= #{id} 
+				AND status =#{statusReadyCd}
+	</delete>
+	
+	
+	<select id="checkInsertAddBreakByMonth" parameterType="commutingRequestVO" resultType="Integer">
+		select count(*)
+		from ${tableName}
+		where member_id =#{memberId}
+		AND request_dt =#{requestDt}
+	</select>
+
+	<select id="findAll" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+		SELECT	a.*
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+				AND member_id	= #{searchMemberId}
+				AND request_dt	BETWEEN #{searchStartDt} AND #{searchEndDt}
+				AND status IN (#{statusReadyCd}, #{statusYesCd})
+		ORDER 	BY request_dt
+	</select>
+
+	<select id="findAllOrderByCrtDtDesc" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+		SELECT	a.*,
+			  	FN_CODE_NAME(#{statusCd}, a.status) status_name,
+			  	FN_CODE_NAME(#{commutingRequestTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+			  	AND member_id	= #{searchMemberId}
+		ORDER 	BY crt_dt DESC
+	</select>
+	
+	<select id="findById" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+		SELECT	a.*,
+				FN_MEMBER_NAME(member_id) member_name,
+				FN_MEMBER_NAME(approve_id) approve_name,
+				FN_CODE_NAME(#{statusCd}, status) status_name,
+				FN_CODE_NAME(#{commutingRequestTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+				AND id	= #{id}
+	</select>
+	
+	<!--검색용 연도 구하기 -->
+	<select id="searchYear" parameterType="commutingRequestVO" resultType="Integer">
+		SELECT TO_CHAR(TO_DATE(request_dt),'YYYY')
+		FROM ${tableName}
+		GROUP BY TO_CHAR(TO_DATE(request_dt),'YYYY')
+		ORDER BY TO_CHAR(TO_DATE(request_dt),'YYYY')
+	</select>
+
+	<!-- 검색용 commutingRequest Type 구하기 -->
+	<select id="searchType" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+		SELECT FN_CODE_NAME(#{commutingRequestTypeCd}, type) typeName , type
+		FROM ${tableName}
+		WHERE type IN (#{onWorkCd}, #{offWorkCd},#{overtimeWorkCd})
+		GROUP BY type
+	</select>
+	
+	<select id="searching" parameterType="commutingRequestVO" resultType="commutingRequestVO">
+		SELECT	a.*,
+				FN_MEMBER_NAME(member_id) member_name,
+				FN_MEMBER_NAME(approve_id) approve_name,
+				FN_CODE_NAME(#{statusCd}, status) status_name,
+				FN_CODE_NAME(#{commutingRequestTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+			<if test='searchStartDt != "" and searchStartDt != null and searchEndDt != "" and searchEndDt != null'>
+				AND request_dt BETWEEN #{searchStartDt} AND #{searchEndDt}
+			</if>
+			<if test='searchMemberId != "" and searchMemberId != null'>
+				AND member_id   = #{searchMemberId}
+			</if>
+			<choose>
+				<when test='searchType == null or searchType == ""'>
+					AND type IN (#{onWorkCd}, #{offWorkCd},#{overtimeWorkCd})
+				</when>
+				<otherwise>
+					<if test='searchType eq "Y"'>
+						AND type = #{onWorkCd}
+					</if>
+					<if test= 'searchType eq "N"'>
+						AND type = #{offWorkCd}
+					</if>
+					<if test= 'searchType eq "O"'>
+						AND type = #{overtimeWorkCd}
+					</if>
+				</otherwise>
+			</choose>
+		ORDER 	BY request_dt DESC
+	</select>
+	
+	
+	<!-- 야근신청 한 날 날짜 조회  07.29-->
+	<select id="findOvertimeByDay" parameterType="commutingRequestVO" resultType="String">      
+        SELECT	request_dt 
+		FROM	${tableName}
+		WHERE	member_id   = #{searchMemberId}
+                AND request_dt between #{searchStartDt} AND #{searchEndDt}
+		  		AND type = #{overtimeWorkCd}
+		  		AND status =#{statusYesCd}
+		  		AND del_dt	IS NULL
+		GROUP BY request_dt
+	</select>
+	
+	<select id="alreadyDoneCheckCommuting" parameterType="commutingRequestVO" resultType="String">      
+        SELECT	id 
+		FROM	${tableName}
+		WHERE	member_id   = #{searchMemberId}
+                AND request_dt between #{searchStartDt} AND #{searchEndDt}
+		  		AND type = 'O'
+		  		AND status != 'N'
+	</select>
+	
+	
+	<select id="commutingCalculate" parameterType="CommutingVO" resultType="Integer">
+	select total_time 
+	from ${subtableName}
+	 where member_id=#{memberId} and to_char(sysdate,'yyyy-MM') = to_char(to_date(request_dt),'yyyy-MM') and del_dt is null
+	</select>
+</mapper>

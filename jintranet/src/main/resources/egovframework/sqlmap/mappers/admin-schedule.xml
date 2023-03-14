@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.admin.schedule.service.AdminScheduleMapper">
+    <select id="getScheduleCnt" parameterType="ScheduleVO" resultType="Integer">
+        SELECT  COUNT(*)
+        FROM    ${tableName} a
+        WHERE   del_dt IS NULL
+                AND approve_id  = #{approveId}
+                AND type IN (#{fullVacationCd}, #{halfVacationCd}, #{overtimeWorkCd})
+            <if test='searchMemberId != "" and searchMemberId != null'>
+                AND member_id   = #{searchMemberId}
+            </if>
+                AND status IN (''
+                <if test='searchStatusR != "" and searchStatusR != null'>
+                    , #{statusReadyCd}, #{statusCancelCd}
+                </if>
+                <if test='searchStatusY != "" and searchStatusY != null'>
+                    , #{statusYesCd}, #{statusDeleteCd}
+                </if>
+                <if test='searchStatusN != "" and searchStatusN != null'>
+                    , #{statusNoCd}
+                </if>
+                )
+    </select>
+
+    <select id="findAll" parameterType="ScheduleVO" resultType="ScheduleVO">
+        SELECT  t.*
+        FROM    (SELECT ROW_NUMBER() over(order by crt_dt desc) as rnum, a.*,
+                        FN_MEMBER_NAME(a.member_id) member_name,
+                        FN_MEMBER_NAME(a.approve_id) approve_name,
+                        FN_CODE_NAME(#{statusCd}, a.status) status_name,
+                        FN_CODE_NAME(#{scheduleTypeCd}, a.type) type_name
+                FROM    ${tableName} a
+                WHERE   del_dt IS NULL
+                        AND approve_id  = #{approveId}
+                        AND type IN (#{fullVacationCd}, #{halfVacationCd}, #{overtimeWorkCd})
+                        <if test='searchMemberId != "" and searchMemberId != null'>
+                            AND member_id   = #{searchMemberId}
+                        </if>
+                        AND status IN (''
+                        <if test='searchStatusR != "" and searchStatusR != null'>
+                            , #{statusReadyCd}, #{statusCancelCd}
+                        </if>
+                        <if test='searchStatusY != "" and searchStatusY != null'>
+                            , #{statusYesCd}, #{statusDeleteCd}
+                        </if>
+                        <if test='searchStatusN != "" and searchStatusN != null'>
+                            , #{statusNoCd}
+                        </if>
+                        )
+                ) t
+        WHERE   rnum BETWEEN #{firstIndex} AND #{lastIndex}
+        ORDER   BY rnum
+    </select>
+
+    <select id="findById" parameterType="ScheduleVO" resultType="ScheduleVO">
+        SELECT  a.*,
+                FN_MEMBER_NAME(a.member_id) member_name,
+                FN_MEMBER_NAME(a.approve_id) approve_name,
+                FN_CODE_NAME(#{statusCd}, a.status) status_name,
+                FN_CODE_NAME(#{scheduleTypeCd}, a.type) type_name
+        FROM    ${tableName} a
+        WHERE   del_dt IS NULL
+                AND id  = #{id}
+    </select>
+
+    <insert id="write" parameterType="MemberVO">
+        <selectKey keyProperty="id" resultType="Integer" order="AFTER">
+            SELECT	SEQ_MEMBER_ID.currval FROM dual
+        </selectKey>
+        INSERT INTO ${tableName} (
+            member_id, password, name, phone_no, mobile_no,
+            position, department, color, card_no,
+            crt_id, udt_id
+        ) VALUES (
+            #{memberId}, #{password}, #{name}, #{phoneNo}, #{mobileNo},
+            #{position}, #{department}, #{color}, #{cardNo},
+            #{crtId}, #{udtId}
+        )
+    </insert>
+
+    <update id="approve" parameterType="ScheduleVO">
+        UPDATE  ${tableName}
+        SET     status      = #{status},
+                approve_dt  = SYSDATE
+        WHERE   id  = #{id}
+                AND del_dt IS NULl
+    </update>
+
+</mapper>

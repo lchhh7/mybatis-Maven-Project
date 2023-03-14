@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+	<settings>
+		<setting name="callSettersOnNulls" value="true" />
+		<setting name="mapUnderscoreToCamelCase" value="true" />
+		<setting name="jdbcTypeForNull" value ="NULL"/>
+	</settings>
+
+	<typeAliases>
+		<!-- Collections -->
+		<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+		<typeAlias alias="HashMap" type="java.util.HashMap" />
+		<typeAlias alias="String" type="java.lang.String" />
+		<typeAlias alias="Integer" type="java.lang.Integer" />
+		<typeAlias alias="List" type="java.util.List" />
+		
+		<!-- 공통  -->
+		<typeAlias type="com.jinjin.jintranet.common.vo.MemberVO" alias="MemberVO" />
+		<typeAlias type="com.jinjin.jintranet.common.vo.CommutingVO" alias="CommutingVO" />
+		<typeAlias type="com.jinjin.jintranet.common.vo.CommutingRequestVO" alias="CommutingRequestVO" />
+		<typeAlias type="com.jinjin.jintranet.common.vo.CompanyVO" alias="CompanyVO" />
+		<typeAlias type="com.jinjin.jintranet.common.vo.CompanyAttachVO" alias="CompanyAttachVO" />
+		<typeAlias type="com.jinjin.jintranet.common.vo.ScheduleVO" alias="ScheduleVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.HolidayVO" alias="HolidayVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.NoticeVO" alias="NoticeVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.NoticeAttachVO" alias="NoticeAttachVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.AuthVO" alias="AuthVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.CodeVO" alias="CodeVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.ProjectDefaultVO" alias="ProjectDefaultVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.ProjectVO" alias="ProjectVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.ProjectMemberVO" alias="ProjectMemberVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.ProjectSegmentVO" alias="ProjectSegmentVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.ProjectScheduleVO" alias="ProjectScheduleVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.ProjectDocumentVO" alias="ProjectDocumentVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.SupplyVO" alias="SupplyVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.SupplyAttachVO" alias="SupplyAttachVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.DocumentVO" alias="DocumentVO"/>
+		<typeAlias type="com.jinjin.jintranet.common.vo.AddBreakVO" alias="AddBreakVO"/>
+	</typeAliases>
+</configuration>

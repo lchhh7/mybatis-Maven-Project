@@ -1,0 +1,14 @@
+.externalToolBuilders
+.idea
+target/
+webroot/WEB-INF/classes/
+webroot/common/files/
+.settings/
+.classpath
+.pmd
+.project
+.springBeans
+bin/
+jintranet.iml
+/bin/
+

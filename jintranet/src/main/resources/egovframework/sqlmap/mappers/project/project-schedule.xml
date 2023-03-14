@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.project.service.ProjectScheduleMapper">
+    <select id="findProjectScheduleByProjectId" parameterType="ProjectDefaultVO" resultType="ProjectScheduleVO">
+        SELECT  t.*
+        FROM    (SELECT ROW_NUMBER() over(order by a.id desc) as rnum, a.id, a.kind, a.title, a.place, a.attendee,
+                        a.schedule_start_dt, a.schedule_end_dt,
+                        a.schedule_start_tm, a.schedule_end_tm,
+                        FN_CODE_NAME(#{projectScheduleCd}, a.kind) kind_name
+                 FROM   ${scheduleTableName} a
+                            LEFT JOIN ${tableName} b
+                                    ON a.project_id = b.id
+                                    AND b.del_dt IS NULL
+                 WHERE  project_id  = #{id}
+                        AND a.del_dt IS NULL) t
+        WHERE	ROWNUM BETWEEN #{firstIndex} AND #{lastIndex}
+        ORDER	BY ROWNUM
+    </select>
+
+    <select id="findProjectScheduleByKind" parameterType="ProjectDefaultVO" resultType="ProjectScheduleVO">
+        SELECT  a.id, a.kind, a.title, a.place, a.attendee,
+                a.schedule_start_dt, a.schedule_end_dt,
+                a.schedule_start_tm, a.schedule_end_tm,
+                FN_CODE_NAME(#{projectScheduleCd}, a.kind) kind_name
+        FROM    ${scheduleTableName} a
+                LEFT JOIN ${tableName} b
+                        ON a.project_id = b.id
+                        AND b.del_dt IS NULL
+        WHERE   project_id  = #{id}
+                AND a.del_dt IS NULL
+                AND kind IN (''
+                <if test='searchKind1 != "" and searchKind1!= null'>
+                    , #{searchKind1}
+                </if>
+                <if test='searchKind2 != "" and searchKind2 != null'>
+                    , #{searchKind2}
+                </if>
+                <if test='searchKind3 != "" and searchKind3 != null'>
+                    , #{searchKind3}
+                </if>
+                )
+                AND schedule_start_dt LIKE #{searchYear}||'%'
+    </select>
+
+    <select id="findProjectScheduleById" parameterType="ProjectScheduleVO" resultType="ProjectScheduleVO">
+        SELECT  a.id, a.kind, a.title, a.place, a.attendee, a.remark,
+                a.schedule_start_dt, a.schedule_end_dt,
+                a.schedule_start_tm, a.schedule_end_tm,
+                FN_CODE_NAME(#{projectScheduleCd}, a.kind) kind_name
+        FROM    ${scheduleTableName} a
+        WHERE   id  = #{id}
+                AND a.del_dt IS NULL
+    </select>
+
+    <insert id="write" parameterType="ProjectScheduleVO">
+        INSERT INTO ${scheduleTableName} (
+            kind, title, place, attendee, remark, schedule_start_dt, schedule_start_tm,
+            schedule_end_dt, schedule_end_tm, project_id, crt_id, udt_id
+        ) VALUES (
+            #{kind}, #{title}, #{place}, #{attendee}, #{remark}, #{scheduleStartDt}, #{scheduleStartTm},
+            #{scheduleEndDt}, #{scheduleEndTm}, #{projectId}, #{crtId}, #{udtId}
+        )
+    </insert>
+    <update id="edit" parameterType="ProjectScheduleVO">
+        UPDATE  ${scheduleTableName}
+        SET     kind                = #{kind},
+                title               = #{title},
+                schedule_start_dt   = #{scheduleStartDt},
+                schedule_start_tm   = #{scheduleStartTm},
+                schedule_end_dt     = #{scheduleEndDt},
+                schedule_end_tm     = #{scheduleEndTm},
+                place               = #{place},
+                attendee            = #{attendee},
+                remark              = #{remark},
+                udt_id              = #{udtId},
+                udt_dt              = SYSDATE
+        WHERE   id  = #{id}
+          AND del_dt IS NULL
+    </update>
+
+    <update id="delete" parameterType="ProjectScheduleVO">
+        UPDATE  ${scheduleTableName}
+        SET     del_id  = #{delId},
+                del_dt  = SYSDATE
+        WHERE   id  = #{id}
+    </update>
+</mapper>

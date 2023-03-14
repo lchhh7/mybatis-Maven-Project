@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.notice.service.NoticeMapper">
+	<select id="getNoticeCnt" parameterType="NoticeVO" resultType="Integer">
+		SELECT	COUNT(*)
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+			<if test='searchTitle != "" and searchTitle != null'>
+				AND title LIKE '%'||#{searchTitle}||'%'
+			</if>
+			<if test='searchMemberName != "" and searchMemberName != null'>
+				AND (SELECT name FROM member WHERE id = a.crt_id) LIKE '%'||#{searchMemberName}||'%'
+			</if>
+	</select>
+
+	<select id="findNoticeAll" parameterType="NoticeVO" resultType="NoticeVO">
+		SELECT	t.*
+		FROM	(SELECT	ROW_NUMBER() over(order by id) as rnum, id, title, content,
+						(SELECT name FROM member WHERE id = a.crt_id) member_name,
+						TO_CHAR(crt_dt, 'yyyy.MM.dd') crt_dt,
+						DECODE((SELECT	COUNT(*)
+								FROM	${subTableName}
+								WHERE	notice_id = a.id
+										AND del_dt IS NULL), 0, 'N', 'Y') attach_yn
+				FROM	${tableName} a
+				WHERE	del_dt IS NULL
+					<if test='searchTitle != "" and searchTitle != null'>
+						AND title LIKE '%'||#{searchTitle}||'%'
+					</if>
+					<if test='searchMemberName != "" and searchMemberName != null'>
+						AND (SELECT name FROM member WHERE id = a.crt_id) LIKE '%'||#{searchMemberName}||'%'
+					</if>
+				ORDER 	BY id DESC
+				) t
+		WHERE	rnum BETWEEN #{firstIndex} AND #{lastIndex}
+		ORDER 	BY rnum
+	</select>
+
+	<select id="findNoticeById" parameterType="NoticeVO" resultType="NoticeVO">
+		SELECT	id, title, content,
+				(SELECT name FROM member WHERE id = a.crt_id) member_name,
+				TO_CHAR(crt_dt, 'yyyy.MM.dd') crt_dt
+		FROM	${tableName} a
+		WHERE	id = #{id}
+				AND del_dt IS NULL
+	</select>
+	
+	<select id="findNoticePopupInfo" parameterType="NoticeVO" resultType="NoticeVO">
+		
+			SELECT	crt_id,crt_dt,title,content,(SELECT name FROM member WHERE id = a.crt_id) member_name
+			FROM	${tableName} a
+			WHERE	del_id is null
+			AND post_str_dt <![CDATA[<]]> SYSDATE and post_end_dt <![CDATA[>]]> SYSDATE-1
+	</select>
+	
+	<select id="findNoticeAttachById" parameterType="NoticeAttachVO" resultType="NoticeAttachVO">
+		SELECT	a.*
+		FROM	${tableName} a
+		    	LEFT JOIN ${mainTableName} b
+						ON	a.notice_id	= b.id
+						AND b.del_dt IS NULL
+		WHERE	a.notice_id	= #{noticeId}
+				AND a.del_dt IS NULL
+	</select>
+
+	<select id="findNoticeAttachByAttachId" parameterType="NoticeAttachVO" resultType="NoticeAttachVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	id	= #{id}
+		  		AND del_dt IS NULL
+	</select>
+	
+	<insert id="write" parameterType="NoticeVO">
+		<selectKey keyProperty="id" resultType="Integer" order="AFTER">
+			SELECT	SEQ_NOTICE_ID.currval FROM dual
+		</selectKey>
+		INSERT INTO ${tableName} (
+			title, content, crt_id, udt_id ,post_str_dt, post_end_dt
+		) VALUES (
+			#{title},
+		<foreach collection="contents" item="i" open="(" separator="||" close="),">
+			TO_CLOB(#{i})
+		</foreach>
+		    #{crtId}, #{udtId} ,#{postStrDt} ,#{postEndDt}
+		)
+	</insert>
+
+	<insert id="writeAttach" parameterType="NoticeAttachVO">
+		INSERT INTO ${tableName} (
+			notice_id, path, original_file_name, stored_file_name, file_size, crt_id
+		) VALUES (
+		    #{noticeId}, #{path}, #{originalFileName}, #{storedFileName}, #{fileSize}, #{crtId}
+		)
+	</insert>
+
+	<update id="edit" parameterType="NoticeVO">
+		UPDATE	${tableName}
+		SET		title	= #{title},
+		    	content	=
+		<foreach collection="contents" item="i" open="(" separator="||" close="),">
+			TO_CLOB(#{i})
+		</foreach>
+		    	udt_id	= #{udtId},
+		    	udt_dt	= SYSDATE
+		WHERE	id = #{id}
+	</update>
+
+	<update id="delete" parameterType="NoticeVO">
+		UPDATE	${tableName}
+		SET		del_id	= #{delId},
+				del_dt	= SYSDATE
+		WHERE	id = #{id}
+	</update>
+
+	<update id="deleteAttach" parameterType="NoticeAttachVO">
+		UPDATE	${tableName}
+		SET 	del_id	= #{delId},
+		    	del_dt	= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+</mapper>
+
+

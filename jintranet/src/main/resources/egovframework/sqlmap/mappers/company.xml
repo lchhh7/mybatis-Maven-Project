@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.company.service.CompanyMapper">
+	<select id="getCompanyCnt" parameterType="CompanyVO" resultType="Integer">
+		SELECT	COUNT(*)
+		FROM	${tableName}
+		WHERE	del_dt IS NULL
+			<if test='searchName != "" and searchName != null'>
+				AND company_name LIKE '%'||#{searchName}||'%'
+			</if>
+				AND company_kind IN (''
+				<if test='searchKind1 != "" and searchKind1 != null'>
+					, #{searchKind1}
+				</if>
+				<if test='searchKind2 != "" and searchKind2 != null'>
+					, #{searchKind2}
+				</if>
+				)
+	</select>
+
+	<select id="findCompanyAllForProject" parameterType="CompanyVO" resultType="CompanyVO">
+		SELECT * FROM ${tableName} WHERE del_dt IS NULL
+	</select>
+
+	<select id="findCompanyAll" parameterType="CompanyVO" resultType="CompanyVO">
+		SELECT	t.*,
+				FN_CODE_NAME('010', t.company_kind) company_kind_name
+		FROM	(SELECT	ROWNUM as rnum, a.*
+				FROM	${tableName} a
+				WHERE	DEL_DT IS NULL
+					<if test='searchName != "" and searchName != null'>
+						AND company_name LIKE '%'||#{searchName}||'%'
+					</if>
+						AND company_kind IN (''
+					<if test='searchKind1 != "" and searchKind1 != null'>
+								, #{searchKind1}
+					</if>
+					<if test='searchKind2 != "" and searchKind2 != null'>
+								, #{searchKind2}
+					</if>
+						)
+		    	ORDER BY company_name
+				) t
+		WHERE	rnum BETWEEN #{firstIndex} AND #{lastIndex}
+		ORDER 	BY rnum
+	</select>
+
+	<select id="findCompanyById" parameterType="CompanyVO" resultType="CompanyVO">
+		SELECT * FROM ${tableName} WHERE id = #{id} AND DEL_DT IS NULL
+	</select>
+
+	<insert id="write" parameterType="CompanyVO">
+		<selectKey keyProperty="id" resultType="Integer" order="AFTER">
+			SELECT	SEQ_COMPANY_ID.currval FROM dual
+		</selectKey>
+		INSERT INTO ${tableName} (
+			company_name, company_no, company_kind,
+			license_yn, bankbook_yn, crt_id, udt_id
+		) VALUES (
+			#{companyName}, #{companyNo}, #{companyKind},
+		    #{licenseYN}, #{bankbookYN}, #{crtId}, #{udtId}
+		)
+	</insert>
+
+	<update id="edit" parameterType="CompanyVO">
+		UPDATE	${tableName}
+		SET 	company_name	= #{companyName},
+		    	company_no		= #{companyNo},
+		    	company_kind	= #{companyKind},
+		    	license_yn		= #{licenseYN},
+		    	bankbook_yn		= #{bankbookYN},
+		    	udt_id			= #{udtId},
+		    	udt_dt			= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<update id="delete" parameterType="CompanyVO">
+		UPDATE	${tableName}
+		SET 	del_id	= #{delId},
+		    	del_dt	= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<insert id="writeAttach" parameterType="CompanyAttachVO">
+		INSERT INTO ${tableName} (
+			company_id, attach_kind, path, original_file_name, stored_file_name, file_size, crt_id
+		) VALUES (
+			 #{companyId}, #{attachKind}, #{path}, #{originalFileName}, #{storedFileName}, #{fileSize}, #{crtId}
+		 )
+	</insert>
+
+	<update id="deleteAttach" parameterType="CompanyAttachVO">
+		UPDATE	${tableName}
+		SET 	del_id	= #{delId},
+			   	del_dt	= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<select id="findCompanyAttachByAttachId" parameterType="CompanyAttachVO" resultType="CompanyAttachVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	id	= #{id}
+		  		AND del_dt IS NULL
+	</select>
+
+	<select id="findCompanyAttachById" parameterType="CompanyAttachVO" resultType="CompanyAttachVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	company_id	= #{companyId}
+		  		AND del_dt IS NULL
+			<if test='searchAttachKind != "" and searchAttachKind != null'>
+				AND attach_kind	= #{searchAttachKind}
+			</if>
+	</select>
+
+</mapper>

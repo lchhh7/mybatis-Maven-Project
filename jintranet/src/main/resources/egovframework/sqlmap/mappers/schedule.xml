@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.schedule.service.ScheduleMapper">
+	<select id="findForMain" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT * 
+		FROM (
+			SELECT	to_char(crt_dt, 'yyyy.MM.dd') crt_dt, start_dt,
+					FN_CODE_NAME(#{statusCd}, status) status_name,
+					FN_CODE_NAME(#{scheduleTypeCd}, type) type_name ,
+					(SELECT count(*) FROM schedule WHERE member_id =#{memberId} AND type IN ('FV', 'HV') AND STATUS='R') AS RCOUNT
+			FROM	${tableName} a
+			WHERE	del_dt IS NULL
+					AND member_id   = #{searchMemberId}
+					AND type IN (#{fullVacationCd}, #{halfVacationCd})
+			ORDER 	BY start_dt DESC
+		) WHERE ROWNUM = 1
+	</select>
+
+	<select id="findAll" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	a.*,
+				FN_MEMBER_NAME(member_id) member_name,
+				FN_MEMBER_NAME(approve_id) approve_name,
+				FN_CODE_NAME(#{statusCd}, status) status_name,
+				FN_CODE_NAME(#{scheduleTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+				AND status != #{statusDeleteCd}
+			<if test='searchStartDt != "" and searchStartDt != null and searchEndDt != "" and searchEndDt != null'>
+				AND end_dt BETWEEN #{searchStartDt} AND #{searchEndDt}
+			</if>
+			<if test='searchMemberId != "" and searchMemberId != null'>
+				AND member_id   = #{searchMemberId}
+			</if>
+				AND type IN (''
+				<if test='searchTypeSC != "" and searchTypeSC != null'>
+					, #{scheduleCd}
+				</if>
+				<if test='searchTypeVA != "" and searchTypeVA != null'>
+					, #{fullVacationCd}, #{halfVacationCd}
+				</if>
+				<if test='searchTypeOW != "" and searchTypeOW != null'>
+					, #{outsideWorkCd}
+				</if>
+				<if test='searchTypeBT != "" and searchTypeBT != null'>
+					, #{businessTripCd}
+				</if>
+				)
+		ORDER 	BY start_dt DESC
+	</select>
+
+	<select id="findById" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	a.*,
+		       	FN_MEMBER_NAME(member_id) member_name,
+		       	FN_MEMBER_NAME(approve_id) approve_name,
+		       	FN_CODE_NAME(#{statusCd}, status) status_name,
+		       	FN_CODE_NAME(#{scheduleTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</select>
+
+	<insert id="write" parameterType="ScheduleVO">
+		<selectKey keyProperty="id" resultType="int" order="AFTER">
+			select SEQ_SCHEDULE_ID.CURRVAL FROM DUAL
+		</selectKey>
+		INSERT INTO ${tableName} (
+			type, member_id, title, content, start_dt, end_dt,
+			start_tm, end_tm, color, approve_id, approve_dt, crt_id, udt_id
+			<if test='passengers!= null and passengers.size!=0'>
+					 , passenger
+			</if>
+		) VALUES (
+		    #{type}, #{memberId}, #{title}, #{content}, #{startDt}, #{endDt},
+		    #{startTm}, #{endTm}, #{color}, #{approveId}, SYSDATE, #{crtId}, #{udtId}
+		    <if test='passengers!= null and passengers.size!=0'>
+					 , #{statusYesCd}
+			</if>
+		)
+	</insert>
+
+	<update id="edit" parameterType="ScheduleVO">
+		UPDATE	${tableName}
+		SET 	start_dt	= #{startDt},
+		    	end_dt		= #{endDt},
+		    	start_tm	= #{startTm},
+		    	end_tm		= #{endTm},
+		    	title		= #{title},
+		    	content		= #{content},
+		    	color		= #{color},
+		    	udt_id		= #{udtId},
+		    	udt_dt		= SYSDATE
+		    	 <if test='passengers!= null and passengers.size!=0'>
+					  , passenger = #{statusYesCd}
+				</if>
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</update>
+
+	<update id="cancel" parameterType="ScheduleVO">
+		UPDATE	${tableName}
+		SET 	status			= #{status},
+		    	cancel_reason	= #{cancelReason},
+		    	udt_id			= #{udtId},
+			   	udt_dt			= SYSDATE
+		WHERE	id	= #{id}
+		  		AND del_dt IS NULL
+	</update>
+
+	<update id="delete" parameterType="ScheduleVO">
+		UPDATE	${tableName}
+		SET 	del_id	= #{udtId},
+			   	del_dt	= SYSDATE
+		WHERE	id	= #{id}
+	</update>
+
+	<!-- 휴가 일수-->
+	<select id="getAddVacationDays" parameterType="ScheduleVO" resultType="Integer">
+		SELECT	COUNT(*)
+		FROM	${tableName}
+		WHERE	type			= #{addVacationCd}
+				AND member_id	= #{memberId}
+				AND status		= #{statusYesCd}
+				AND start_dt between #{startDt} AND #{endDt}
+				AND del_dt IS NULL
+	</select>
+	<select id="findFullScheduleByMemberIdAndStartDtAndEndDt" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	type, start_dt, end_dt
+		FROM	${tableName}
+		WHERE	type 			= #{fullVacationCd}
+				AND member_id	= #{memberId}
+		  		AND status IN (#{statusYesCd},  #{statusCancelCd})
+				AND start_dt between #{startDt} AND #{endDt}
+				AND del_dt IS NULL
+		ORDER 	BY start_dt
+	</select>
+	<select id="findHalfScheduleByMemberIdAndStartDtAndEndDt" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	type, start_dt, end_dt
+		FROM	${tableName}
+		WHERE	type			= #{halfVacationCd}
+				AND member_id	= #{memberId}
+				AND status IN (#{statusYesCd},  #{statusCancelCd})
+				AND start_dt between #{startDt} AND #{endDt}
+				AND del_dt IS NULL
+		ORDER 	BY start_dt
+	</select>
+
+	<!-- 근태 달력용 -->
+	<select id="findAllForCommuting" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	member_id   = #{searchMemberId}
+		  		AND start_dt
+		  		    BETWEEN	#{searchStartDt}
+		  		    AND		#{searchEndDt}
+		  		AND type 	IN (#{fullVacationCd}, #{halfVacationCd})
+				AND status	IN (#{statusYesCd}, #{statusCancelCd})
+		  		AND del_dt	IS NULL
+	</select>
+	
+	
+	<!-- 출장 리스트(1달  기준 )  -->
+	<!--
+	<select id="findBusinessTripForCommuting" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	member_id   = #{searchMemberId}
+		  		AND type = #{businessTripCd}
+		  		AND start_dt in 
+		  			(select start_dt  
+		  			from ${tableName} 
+		  			where (TO_CHAR(TO_DATE(start_dt,'YYYY-MM-DD'),'D') in (1,7) OR
+		  			(TO_CHAR(TO_DATE(start_dt,'YYYY-MM-DD'),'D') <![CDATA[<=]]> 6 AND TO_CHAR(TO_DATE(end_dt,'YYYY-MM-DD'),'D') <![CDATA[>=]]> 2))
+		  			and start_dt between #{searchStartDt} AND #{searchEndDt})
+		  		AND del_dt	IS NULL
+	</select>
+	-->
+	
+	<!-- 출장 리스트(1달  기준 ) memberId 조건 제거 -->
+	<select id="findBusinessTripForCommuting" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	type = #{businessTripCd}
+		  		AND start_dt in 
+		  			(select start_dt  
+		  			from ${tableName} 
+		  			where (TO_CHAR(TO_DATE(start_dt,'YYYY-MM-DD'),'D') in (1,7) OR
+		  			(TO_CHAR(TO_DATE(start_dt,'YYYY-MM-DD'),'D') <![CDATA[<=]]> 6 AND TO_CHAR(TO_DATE(end_dt,'YYYY-MM-DD'),'D') <![CDATA[>=]]> 2))
+		  			and start_dt between #{searchStartDt} AND #{searchEndDt})
+		  		AND del_dt	IS NULL
+	</select>
+	
+	
+	<!-- OT 제외 다른일정 체크 07.29-->
+	<select id="findOtherScheduleExceptOvertime" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	*
+		FROM	${tableName}
+		WHERE	member_id   = #{memberId}
+			  	AND type in (#{fullVacationCd},#{halfVacationCd})
+			  	AND status = #{statusYesCd} 
+			  	AND start_dt <![CDATA[<=]]> #{startDt} AND end_dt <![CDATA[>=]]> #{startDt}
+			  	AND del_dt	IS NULL
+		ORDER BY start_dt
+	</select>
+	
+	<!--검색용 연도 구하기 -->
+	<select id="searchYear" parameterType="ScheduleVO" resultType="Integer">
+		SELECT TO_CHAR(TO_DATE(start_dt,'yyyy-MM-dd'),'YYYY')
+		FROM ${tableName}
+		GROUP BY TO_CHAR(TO_DATE(start_dt,'yyyy-MM-dd'),'YYYY')
+		ORDER BY TO_CHAR(TO_DATE(start_dt,'yyyy-MM-dd'),'YYYY')
+	</select>
+	
+	<!-- 검색용 schedule Type 구하기 -->
+	<select id="searchType" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT FN_CODE_NAME(#{scheduleTypeCd}, type) typeName , type
+		FROM ${tableName}
+		WHERE type in (#{fullVacationCd},#{halfVacationCd})
+		GROUP BY type
+	</select>
+	
+	<!-- 검색용 (findAll 대체) -->
+	<select id="searching" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	a.*,
+				FN_MEMBER_NAME(member_id) member_name,
+				FN_MEMBER_NAME(approve_id) approve_name,
+				FN_CODE_NAME(#{statusCd}, status) status_name,
+				FN_CODE_NAME(#{scheduleTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+				AND status != #{statusDeleteCd}
+			<if test='searchStartDt != "" and searchStartDt != null and searchEndDt != "" and searchEndDt != null'>
+				AND start_dt BETWEEN #{searchStartDt} AND #{searchEndDt}
+			</if>
+			<if test='searchMemberId != "" and searchMemberId != null'>
+				AND member_id   = #{searchMemberId}
+			</if>
+			<choose>
+				<when test='searchTypeVA == null or searchTypeVA == ""'>
+					AND type IN (#{fullVacationCd}, #{halfVacationCd})
+				</when>
+				<otherwise>
+					<if test='searchTypeVA eq "FV"'>
+						AND type = #{fullVacationCd}
+					</if>
+					<if test= 'searchTypeVA eq "HV"'>
+						AND type = #{halfVacationCd}
+					</if>
+				</otherwise>
+			</choose>
+		ORDER 	BY start_dt DESC
+	</select>
+	
+	<insert id="writePassengers" parameterType="ScheduleVO">
+		INSERT INTO ${passengerTableName} (
+			schedule_id, member_id , crt_dt
+		) VALUES (
+			#{scheduleId}, #{memberId}, SYSDATE
+		)
+	</insert>
+	
+	<delete id="initPassengers" parameterType="ScheduleVO">
+		DELETE
+		FROM ${passengerTableName}
+		WHERE schedule_id = #{scheduleId}
+	</delete>
+	
+	<select id="selectPassengers" parameterType="ScheduleVO" resultType="String">
+		SELECT member_id
+		FROM ${passengerTableName}
+		WHERE schedule_id = #{scheduleId}
+		ORDER BY id
+	</select>
+	
+	<select id="todayBreak" parameterType="ScheduleVO" resultType="ScheduleVO">
+		SELECT	a.*,
+				FN_MEMBER_NAME(member_id) member_name,
+				FN_MEMBER_NAME(approve_id) approve_name,
+				FN_CODE_NAME(#{statusCd}, status) status_name,
+				FN_CODE_NAME(#{scheduleTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+				AND status != #{statusDeleteCd}
+				AND start_dt <![CDATA[<=]]> #{searchStartDt}
+				AND type IN (''
+				<if test='searchTypeVA != "" and searchTypeVA != null'>
+					, #{fullVacationCd}, #{halfVacationCd}
+				</if>
+				<if test='searchTypeSC != "" and searchTypeSC != null'>
+					, #{scheduleCd}
+				</if>
+				<if test='searchTypeOW != "" and searchTypeOW != null'>
+					, #{outsideWorkCd}
+				</if>
+				)
+		INTERSECT
+		SELECT	a.*,
+				FN_MEMBER_NAME(member_id) member_name,
+				FN_MEMBER_NAME(approve_id) approve_name,
+				FN_CODE_NAME(#{statusCd}, status) status_name,
+				FN_CODE_NAME(#{scheduleTypeCd}, a.type) type_name
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+				AND status != #{statusDeleteCd}
+				AND end_dt <![CDATA[>=]]> #{searchEndDt}
+				AND type IN (''
+				<if test='searchTypeVA != "" and searchTypeVA != null'>
+					, #{fullVacationCd}, #{halfVacationCd}
+				</if>
+				<if test='searchTypeSC != "" and searchTypeSC != null'>
+					, #{scheduleCd}
+				</if>
+				<if test='searchTypeOW != "" and searchTypeOW != null'>
+					, #{outsideWorkCd}
+				</if>
+				)
+		
+	</select>
+</mapper>

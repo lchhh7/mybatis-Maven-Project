@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.commuting.service.CommutingMapper">
+	<select id="getWorkingTime" parameterType="CommutingVO" resultType="CommutingVO">
+		SELECT	t.id, t.commuting_tm, t.attend_yn, t.dt, t.tm, (t.dt||'T'||t.tm||':01') dtm
+	  	FROM	(SELECT	a.id, a.commuting_tm, a.attend_yn,
+				 		TO_CHAR(a.commuting_tm, 'yyyy-MM-dd') AS dt,
+						TO_CHAR(a.commuting_tm, 'HH24:mi') AS tm,
+						ROW_NUMBER() OVER(PARTITION BY TO_CHAR(a.commuting_tm, 'yyyy-MM-dd') ORDER BY a.commuting_tm ASC) as idx
+				FROM	COMMUTING a
+				WHERE	del_dt IS NULL
+						AND attend_yn	= 'Y'
+						AND member_id	= #{memberId}
+						AND commuting_tm
+				   			BETWEEN	TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+					   		AND 	TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+			   	ORDER 	BY commuting_tm)t
+		WHERE	idx	= 1
+	</select>
+	<select id="getQuittingTime" parameterType="CommutingVO" resultType="CommutingVO">
+		SELECT	t.id, t.commuting_tm, t.attend_yn, t.dt, t.tm, (t.dt||'T'||t.tm||':02') dtm
+		FROM	(SELECT	a.id, a.commuting_tm, a.attend_yn,
+						   TO_CHAR(a.commuting_tm, 'yyyy-MM-dd') AS dt,
+						   TO_CHAR(a.commuting_tm, 'HH24:mi') AS tm,
+						   ROW_NUMBER() OVER(PARTITION BY TO_CHAR(a.commuting_tm, 'yyyy-MM-dd') ORDER BY a.commuting_tm DESC) as idx
+				 FROM	${tableName} a
+				 WHERE	del_dt IS NULL
+				   		AND attend_yn 	= 'N'
+				   		AND member_id	= #{memberId}
+				   		AND commuting_tm
+					 		BETWEEN	TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+					 		AND 	TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+				 ORDER 	BY commuting_tm)t
+		WHERE	idx	= 1
+		and t.dt not in (select TO_CHAR(commuting_tm-1, 'yyyy-MM-dd') AS dt from ${tableName} where 
+        del_dt IS NULL
+				   		AND attend_yn 	= 'V'
+				   		AND member_id	= #{memberId}
+				   		AND commuting_tm
+					 		BETWEEN	TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+					 		AND 	TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+        )
+	</select>
+	<select id="getAllNightTime" parameterType="CommutingVO" resultType="CommutingVO">
+		SELECT	t.id, t.commuting_tm, t.attend_yn, t.dt, t.tm, (t.dt||'T'||t.tm||':00') dtm
+		FROM	(SELECT	a.id, a.commuting_tm, a.attend_yn,
+						   TO_CHAR(a.commuting_tm , 'yyyy-MM-dd') AS dt,
+						   TO_CHAR(a.commuting_tm, 'HH24:mi') AS tm,
+						   ROW_NUMBER() OVER(PARTITION BY TO_CHAR(a.commuting_tm, 'yyyy-MM-dd') ORDER BY a.commuting_tm DESC) as idx
+				 FROM	${tableName} a
+				 WHERE	del_dt IS NULL
+				   AND attend_yn 	= 'V'
+				   AND member_id	= #{memberId}
+				   AND commuting_tm
+					 BETWEEN	TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+					 AND 	TO_DATE(#{searchEndDt},  'yyyy-MM-dd')
+				 ORDER 	BY commuting_tm)t
+		WHERE	idx	= 1
+	</select>
+
+	<select id="findById" parameterType="CommutingVO" resultType="CommutingVO">
+		SELECT	a.*
+		FROM	${tableName} a
+		WHERE	del_dt IS NULL
+				AND id	= #{id}
+	</select>
+	
+	<select id="goToWorkTime" parameterType="CommutingVO" resultType="String">
+	SELECT NVL(
+	(SELECT * FROM (SELECT TO_CHAR(COMMUTING_TM,'YYYY-MM-DD HH24:MI:SS')
+    FROM ${tableName}
+    WHERE MEMBER_ID=#{searchMemberId} AND ATTEND_YN='Y' AND TO_CHAR(SYSDATE,'YYYY-MM-DD') = TO_CHAR(COMMUTING_TM,'YYYY-MM-DD') AND del_dt is null ORDER BY COMMUTING_TM) WHERE ROWNUM = 1)
+    ,0) FROM DUAL
+	</select>
+	
+	<select id="offToWorkTime" parameterType="CommutingVO" resultType="String">
+	SELECT * 
+	FROM(
+		SELECT TO_CHAR(COMMUTING_TM,'YYYY-MM-DD HH24:MI:SS') A
+	    FROM ${tableName}
+	    WHERE MEMBER_ID=#{searchMemberId} AND ATTEND_YN='N' AND TO_CHAR(SYSDATE,'YYYY-MM-DD') = TO_CHAR(COMMUTING_TM,'YYYY-MM-DD') and del_dt is null union
+	    SELECT TO_CHAR(COMMUTING_TM,'YYYY-MM-DD HH24:MI:SS') A
+	    FROM ${tableName}
+	    WHERE MEMBER_ID=#{searchMemberId} AND ATTEND_YN='V' AND TO_CHAR(SYSDATE+1,'YYYY-MM-DD') = TO_CHAR(COMMUTING_TM,'YYYY-MM-DD') and del_dt is null
+	     AND ROWNUM = 1 ORDER BY A DESC)
+	WHERE ROWNUM = 1
+	</select>
+	
+	<select id="workingStatus" parameterType="CommutingVO" resultType="String">
+	SELECT decode(
+       (SELECT * from (select attend_yn from ${tableName} where TO_CHAR(COMMUTING_TM,'YYYY-MM-DD') = to_char(sysdate,'YYYY-MM-DD') AND MEMBER_ID=#{searchMemberId} 
+       AND del_dt is null order by commuting_tm desc) where rownum =1),
+        'Y','근무중','N','퇴근') from dual
+	</select>
+	
+	<insert id ="goToWorkButton" parameterType="CommutingVO">
+		<selectKey	keyProperty="id" resultType="Integer" order="BEFORE">
+			select SEQ_COMMUTING_ID.nextval from dual
+		</selectKey>
+	    insert into ${tableName}(id,member_id,commuting_tm,attend_yn)
+	    values(#{id},#{memberId},SYSDATE,#{attendYn})
+	</insert>
+	
+	<insert id="write" parameterType="CommutingVO">
+		insert into ${tableName}(member_id,commuting_tm,attend_yn,ow_insert_check)
+		values(#{memberId},#{commutingTm},#{attendYn},#{owInsertCheck})
+	</insert>
+	
+	<select id="commutingExistsCheck" parameterType="CommutingVO" resultType="Integer">
+	select SUM(COUNT(attend_yn)) 
+	from ${tableName}
+	where member_id =#{memberId} and to_char(to_date(#{startDt}),'MM-DD') = to_char(commuting_tm,'MM-DD') and del_dt is null group by attend_yn
+	</select>
+	
+	<update id="owAutoDelete" parameterType="CommutingVO">
+		<if test='owInsertCheck != "" and owInsertCheck != null'>
+		UPDATE ${tableName}
+		SET del_dt = SYSDATE
+		WHERE ow_insert_check =#{owInsertCheck}
+		AND del_dt is null
+		</if>
+	</update>
+	
+	<select id="workingTimeByMemberIdAndRequestDt" parameterType="CommutingVO" resultType="CommutingVO">
+		SELECT	t.tm
+	  	FROM	(SELECT TO_CHAR(a.commuting_tm, 'HH24:mi') AS tm,
+						ROW_NUMBER() OVER(PARTITION BY TO_CHAR(a.commuting_tm, 'yyyy-MM-dd') ORDER BY a.commuting_tm ASC) as idx
+				FROM	COMMUTING a
+				WHERE	del_dt IS NULL
+						AND attend_yn	= 'Y'
+						AND member_id	= #{memberId}
+						AND commuting_tm
+				   			BETWEEN	TO_DATE(#{searchStartDt},'YYYY-MM-DD')
+					   		AND 	TO_DATE(#{searchStartDt},'YYYY-MM-DD') + 1
+			   	ORDER 	BY commuting_tm)t
+		WHERE	idx	= 1
+	</select>
+	<select id="quittingTimeByMemberIdAndRequestDt" parameterType="CommutingVO" resultType="CommutingVO">
+		select * from (
+select c.* , ROW_NUMBER() OVER(ORDER BY c.commuting_tm DESC) as idx from (
+        select b.* from 
+        (SELECT	TO_CHAR(a.commuting_tm, 'HH24:mi') AS tm , a.commuting_tm
+				 FROM	COMMUTING a
+				 WHERE	del_dt IS NULL
+				   		AND attend_yn 	= 'N'
+				   		AND member_id	= #{memberId}
+				   		AND commuting_tm
+					 		BETWEEN	to_date(#{searchStartDt})
+					 		AND 	to_date(#{searchStartDt}) +1
+                 union all
+                 SELECT	TO_CHAR(a.commuting_tm, 'HH24:mi') AS tm , a.commuting_tm
+				 FROM	commuting a
+				 WHERE	del_dt IS NULL
+				   		AND attend_yn 	= 'V'
+				   		AND member_id	= #{memberId}
+				   		AND commuting_tm
+					 		BETWEEN TO_DATE(#{searchStartDt}, 'yyyy-MM-dd')
+					 		AND 	to_date(#{searchStartDt}) +2
+             ) b ) c ) where idx = 1
+	</select>
+</mapper>

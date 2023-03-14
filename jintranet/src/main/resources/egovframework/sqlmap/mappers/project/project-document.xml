@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.project.service.ProjectDocumentMapper">
+    <select id="findProjectDocumentByProjectId" parameterType="ProjectDefaultVO" resultType="ProjectDocumentVO">
+        SELECT  t.*
+        FROM    (SELECT ROW_NUMBER() over(order by a.id desc) as rnum, a.*,
+                        FN_CODE_NAME(#{projectSegmentCd}, a.segment) segment_name,
+                        FN_CODE_NAME(#{projectTaskCd}, a.task) task_name,
+                        FN_CODE_NAME(#{projectDocumentCd}, a.kind) kind_name
+                 FROM   ${documentTableName} a
+                            LEFT JOIN ${tableName} b
+                                        ON a.project_id = b.id
+                                        AND b.del_dt IS NULL
+                 WHERE  project_id  = #{id}
+                        AND a.del_dt IS NULL) t
+        WHERE	rnum BETWEEN #{firstIndex} AND #{lastIndex}
+        ORDER	BY rnum
+    </select>
+
+    <select id="findProjectDocumentById" parameterType="ProjectDocumentVO" resultType="ProjectDocumentVO">
+        SELECT  a.*,
+                FN_CODE_NAME(#{projectSegmentCd}, a.segment) segment_name,
+                FN_CODE_NAME(#{projectTaskCd}, a.task) task_name,
+                FN_CODE_NAME(#{projectDocumentCd}, a.kind) kind_name
+        FROM    ${documentTableName} a
+                LEFT JOIN ${tableName} b
+                        ON a.project_id = b.id
+                        AND b.del_dt IS NULL
+        WHERE   a.id  = #{id}
+    </select>
+
+    <insert id="write" parameterType="ProjectDocumentVO">
+        <selectKey keyProperty="id" resultType="Integer" order="AFTER">
+            SELECT	SEQ_PROJECT_DOCUMENT_ID.currval FROM dual
+        </selectKey>
+        INSERT INTO ${documentTableName} (
+            segment, task, title, kind, path,
+            original_file_name, file_size, stored_file_name, project_id, crt_id, udt_id
+        ) VALUES (
+            #{segment}, #{task}, #{title}, #{kind}, #{path},
+            #{originalFileName}, #{fileSize}, #{storedFileName}, #{projectId}, #{crtId}, #{udtId}
+        )
+    </insert>
+
+    <update id="edit" parameterType="ProjectDocumentVO">
+        UPDATE  ${documentTableName}
+        SET     segment     = #{segment},
+                task        = #{task},
+                title       = #{title},
+                kind        = #{kind},
+                path        = #{path},
+                original_file_name   = #{originalFileName},
+                file_size   = #{fileSize},
+                stored_file_name    = #{storedFileName},
+                version     = #{version},
+                udt_id      = #{udtId},
+                udt_dt      = SYSDATE
+        WHERE   id  = #{id}
+    </update>
+
+    <update id="delete" parameterType="ProjectDocumentVO">
+        UPDATE  ${documentTableName}
+        SET     del_id  = #{delId},
+                del_dt  = SYSDATE
+        WHERE   id  = #{id}
+    </update>
+
+    <insert id="writeDocumentHistory" parameterType="ProjectDocumentVO">
+        INSERT INTO ${documentHistoryTableName} (
+            document_id, segment, task, title, kind, path,
+            original_file_name, file_size, stored_file_name,
+            version, action, crt_id ,crt_dt
+        ) VALUES (
+            #{id}, #{segment}, #{task}, #{title}, #{kind}, #{path},
+            #{originalFileName}, #{fileSize}, #{storedFileName},
+            #{version}, #{action}, #{crtId} ,SYSDATE
+        )
+    </insert>
+
+    <select id="findDocumentHistoryById" parameterType="ProjectDocumentVO" resultType="ProjectDocumentVO">
+        SELECT  t.*
+        FROM    (SELECT ROWNUM as rnum, a.id, a.segment, a.task, a.title, a.kind, a.path,
+                        a.original_file_name, a.file_size, a.stored_file_name, a.version, a.action,
+                        a.crt_id, TO_CHAR(a.crt_dt, 'yyyyMMdd') change_dt,
+                        (SELECT name FROM member WHERE a.crt_id = id) member_name,
+                        FN_CODE_NAME(#{projectSegmentCd}, a.segment) segment_name,
+                        FN_CODE_NAME(#{projectTaskCd}, a.task) task_name,
+                        FN_CODE_NAME(#{projectDocumentCd}, a.kind) kind_name
+                FROM    ${documentHistoryTableName} a
+                        LEFT JOIN ${documentTableName} b
+                                ON a.document_id = b.id
+                                AND b.del_dt IS NULL
+                WHERE   a.document_id = #{id}
+                ORDER   BY a.version DESC) t
+    </select>
+
+    <select id="downloadHistory"  parameterType="ProjectDocumentVO" resultType="ProjectDocumentVO">
+        SELECT  *
+        FROM    ${documentHistoryTableName}
+        WHERE   id = #{historyId}
+    </select>
+</mapper>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.addBreak.service.AddBreakMapper">
+	<select id="monthlySelect" parameterType="AddBreakVO" resultType="AddBreakVO">
+		SELECT	*
+	  	FROM	${tableName}
+		WHERE	year =#{year} 
+		AND     month =#{month}
+		AND     member_id =#{memberId}
+	</select>
+	
+	<update id="monthlyEdit" parameterType="AddBreakVO">
+		UPDATE ${tableName}
+		SET monthly_accumulate_hours = #{monthlyAccumulateHours} , monthly_accumulate_days =#{monthlyAccumulateDays} ,
+		    udt_dt = SYSDATE
+		WHERE	year =#{year} 
+		AND     month =#{month}
+		AND     member_id =#{memberId}
+	</update>
+	
+	<select id="addBreakCount" parameterType="AddBreakVO" resultType="Integer">
+		SELECT	SUM(monthly_accumulate_days)
+	  	FROM	${tableName}
+		WHERE	member_id =#{memberId}
+		AND 	year =#{year}
+	</select>
+	
+	<select id="allAddBreakByMember" parameterType="AddBreakVO" resultType="String">
+		SELECT	monthly_accumulate_days
+	  	FROM	${tableName}
+		WHERE	member_id =#{memberId}
+		AND 	year =#{year}
+		ORDER BY year,month
+	</select>
+	
+	<select id="searchYear" parameterType="AddBreakVO" resultType="Integer">
+		SELECT	year
+	  	FROM	${tableName}
+		GROUP BY year
+		ORDER BY year
+	</select>
+	
+	<update id="emptyDataInsert" parameterType="AddBreakVO">
+		INSERT INTO ${tableName} (member_id,year,month,monthly_accumulate_hours,monthly_accumulate_days,crt_dt)
+		values(#{memberId},TO_NUMBER(TO_CHAR(SYSDATE,'YYYY')),#{month},'00:00',0,SYSDATE)
+	</update>
+	
+	<select id="recentMemberId" parameterType="AddBreakVO" resultType="Integer">
+		SELECT	max(member_id)
+	  	FROM	${tableName}
+	</select>
+	
+	
+	<select id="totalAddBreakTime" parameterType="AddBreakVO" resultType="float">
+	select sum(total_tm)
+	from commuting_calculate
+	where member_id=#{memberId} and status='Y'
+	and extract(year from request_dt) = #{year}
+	and extract(month from request_dt) = #{month}
+	</select>
+</mapper>

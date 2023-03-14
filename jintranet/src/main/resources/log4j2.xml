@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d %5p [%c] %m%n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <logger name="jdbc.sqlonly" level="OFF"/>
+        <logger name="jdbc.sqltiming" level="OFF" />
+
+        <Logger name="org.springframework.core" level="DEBUG" addtivity="false">
+        	<appender-ref ref="console"/>
+        </Logger>
+        <Logger name="org.springframework.beans" level="DEBUG" addtivity="false">
+       	 	<appender-ref ref="console"/>
+        </Logger>
+        <Logger name="org.springframework.context" level="OFF" />
+        <Logger name="org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor" level="OFF" />
+        <Logger name="org.springframework.web.servlet.mvc.method.annotation.RequestResponseBodyMethodProcessor" level="OFF" />
+        <Logger name="org.springframework.web" level="DEBUG" />
+        <Logger name="org.springframework.security" level="DEBUG" />
+        <Logger name="org.springframework.aop" level="OFF" />
+        <Logger name="org.springframework.jdbc" level="OFF" />
+        <Logger name="org.springframework.jndi" level="OFF" />
+        <Logger name="egovframework" level="OFF" />
+        <Logger name="org.mybatis.spring" level="OFF" />
+
+        <Logger name="com.jinjin.jintranet" level="DEBUG">
+            <appender-ref ref="console"/>
+        </Logger>
+
+        <Root level="DEBUG">
+            <AppenderRef ref="console"/>
+        </Root>
+    </Loggers>
+</Configuration>

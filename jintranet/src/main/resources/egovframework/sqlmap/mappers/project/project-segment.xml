@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.project.service.ProjectSegmentMapper">
+    <select id="findProjectSegmentByProjectId" parameterType="ProjectDefaultVO" resultType="ProjectSegmentVO">
+        SELECT  t.*,
+                FN_CODE_NAME(#{projectSegmentCd}, t.kind) kind_name
+        FROM    (SELECT ROW_NUMBER() over(order by a.id desc) as rnum, a.id, a.kind, a.title, a.ord, a.project_id,
+                        TO_CHAR(a.crt_dt, 'yyyy-MM-dd hh:mm:ss') crt_dt,
+                        TO_CHAR(a.udt_dt, 'yyyy-MM-dd hh:mm:ss') udt_dt,
+                        FN_CODE_NAME(#{projectSegmentCd}, a.kind) segment_name
+                FROM    ${segmentTableName} a
+                        LEFT JOIN ${tableName} b
+                                ON a.project_id = b.id
+                                AND b.del_dt IS NULL
+                WHERE   project_id  = #{id}
+                        AND a.del_dt IS NULL) t
+        WHERE	ROWNUM BETWEEN #{firstIndex} AND #{lastIndex}
+        ORDER	BY ROWNUM
+    </select>
+
+    <select id="findProjectSegmentById" parameterType="ProjectSegmentVO" resultType="ProjectSegmentVO">
+        SELECT  a.id, a.kind, a.title, ord, project_id,
+                TO_CHAR(a.crt_dt, 'yyyy-MM-dd hh:mm:ss') crt_dt,
+                TO_CHAR(a.udt_dt, 'yyyy-MM-dd hh:mm:ss') udt_dt,
+                FN_CODE_NAME(#{projectSegmentCd}, a.kind) segment_name
+        FROM    ${segmentTableName} a
+        WHERE   id  = #{id}
+                AND a.del_dt IS NULL
+    </select>
+
+    <insert id="write" parameterType="ProjectSegmentVO">
+        INSERT INTO ${segmentTableName} (
+            kind, title, ord, project_id, crt_id, udt_id
+        ) VALUES (
+            #{kind}, #{title}, #{ord}, #{projectId}, #{crtId}, #{udtId}
+        )
+    </insert>
+    <update id="edit" parameterType="ProjectSegmentVO">
+        UPDATE  ${segmentTableName}
+        SET     kind     = #{kind},
+                title    = #{title},
+                ord      = #{ord},
+                udt_id   = #{udtId},
+                udt_dt   = SYSDATE
+        WHERE   id  = #{id}
+                AND del_dt IS NULL
+    </update>
+
+    <update id="delete" parameterType="ProjectSegmentVO">
+        UPDATE  ${segmentTableName}
+        SET     del_id   = #{delId},
+                del_dt      = SYSDATE
+        WHERE   id  = #{id}
+    </update>
+</mapper>

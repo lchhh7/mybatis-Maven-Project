@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.auth.service.AuthMapper">
+	<select id="findAuthAll" parameterType="AuthVO" resultType="AuthVO">
+		SELECT	ROWNUM AS rnum, t.*
+		FROM	(SELECT	id, title
+				FROM	${tableName}
+				WHERE	del_dt IS NULL) t
+		ORDER	BY rnum
+	</select>
+
+	<select id="findAuthById" parameterType="AuthVO" resultType="AuthVO">
+		SELECT	id, title, crt_id, udt_dt, crt_dt, udt_dt
+		FROM	${tableName}
+		WHERE	no = #{no}
+				AND a.del_dt IS NULL
+	</select>
+
+	<select id="findAuthByMemberId" parameterType="AuthVO" resultType="AuthVO">
+		SELECT	a.id, a.title
+		FROM	${tableName} a
+				LEFT JOIN ${subTableName} b
+					   	ON	a.id	= b.auth_id
+						AND	b.del_dt IS NULL
+		WHERE	a.del_dt IS NULL
+				AND b.member_id	= #{memberId}
+		ORDER 	BY a.id
+	</select>
+
+	<select id="findAuthMemberByAuthId" parameterType="AuthVO" resultType="MemberVO">
+		SELECT	a.member_id as id,
+		       	(SELECT name FROM member WHERE id = a.member_id) name
+		FROM	${subTableName} a
+				LEFT JOIN ${tableName} b
+						ON a.auth_id = b.id
+						AND b.del_dt IS NULL
+		WHERE	a.auth_id	= #{id}
+				AND a.del_dt IS NULL
+	</select>
+	
+	<select id="findAuthMemberByMemberId" parameterType="AuthVO" resultType="MemberVO">
+		SELECT	a.member_id as id,auth_id
+		FROM	${subTableName} a
+				LEFT JOIN ${tableName} b
+						ON a.auth_id = b.id
+						AND b.del_dt IS NULL
+		WHERE  a.del_dt IS NULL and member_id=#{memberId} group by a.member_id,auth_id  
+	</select>
+
+
+	<insert id="writeAuthMember" parameterType="AuthVO">
+		INSERT INTO ${subTableName} (
+			auth_id, member_id, crt_id
+		) VALUES (
+		    #{id}, #{memberId}, #{crtId}
+		)
+	</insert>
+
+	<update id="deleteAuthMemberByMemberId" parameterType="AuthVO">
+		UPDATE	${subTableName}
+		SET 	del_id	= #{delId},
+		    	del_dt	= SYSDATE
+		WHERE	member_id	= #{memberId}
+				AND del_dt IS NULL
+	</update>
+
+</mapper>

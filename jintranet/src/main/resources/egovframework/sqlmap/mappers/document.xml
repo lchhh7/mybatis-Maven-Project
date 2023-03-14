@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jinjin.jintranet.document.service.DocumentMapper">
+	<select id="findAll" parameterType="DocumentVO" resultType="DocumentVO">
+		SELECT	t.*
+		FROM	(SELECT	ROW_NUMBER() over(order by crt_dt) as rnum,
+						id, title, document_no, document_dt,
+                		FN_MEMBER_NAME(crt_id) member_name
+				FROM	${tableName}
+				WHERE	del_dt IS NULL
+				  	<if test='searchDocumentDt != "" and searchDocumentDt != null'>
+						AND document_dt	= #{searchDocumentDt}
+					</if>
+		    	) t
+		ORDER BY rnum
+	</select>
+
+	<select id="findById" parameterType="DocumentVO" resultType="DocumentVO">
+		SELECT	id, title, document_dt,
+				FN_MEMBER_NAME(crt_id) member_name,
+		FROM	${tableName}
+		WHERE	id	= #{id}
+		  		AND del_dt IS NULl
+	</select>
+	
+	<select id="findDocumentById" parameterType="DocumentVO" resultType="DocumentVO">
+		SELECT	d.*, FN_MEMBER_NAME(crt_id) member_name , FN_PROJECT_NAME(project_id) project_name
+		FROM	${tableName} d
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</select>
+	
+	<insert id ="write" parameterType="DocumentVO">
+	    INSERT INTO ${tableName} (
+			title, document_no, document_dt,
+			crt_id, udt_id , crt_dt , udt_dt , project_id 
+		) VALUES(
+			#{title}, #{documentNo}, #{documentDt},
+			#{crtId}, #{udtId} , SYSDATE , SYSDATE , #{projectId}
+		)
+	</insert>
+
+	<update id="edit" parameterType="DocumentVO">
+		UPDATE	${tableName}
+		SET 	title		= #{title},
+		    	document_no	= #{documentNo},
+		    	document_dt	= #{documentDt},
+		    	project_id = #{projectId},
+		    	udt_id		= #{udtId},
+		    	udt_dt		= SYSDATE
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</update>
+	
+	<update id ="delete" parameterType="DocumentVO">
+		UPDATE	${tableName}
+		SET		del_id	= #{delId},
+		    	del_dt	= SYSDATE
+		WHERE	id	= #{id}
+				AND del_dt IS NULL
+	</update>
+	
+	<select id="getDocumentCnt" parameterType="DocumentVO" resultType="Integer">
+		SELECT	COUNT(*)
+		FROM	${tableName}
+		WHERE	del_dt IS NULL
+			<if test='searchYear != "" and searchYear != null'>
+				AND (SUBSTR(document_dt, 0, 4)	= #{searchYear})
+			</if>
+			<if test='searchStartDt != "" and searchStartDt != null'>
+				AND document_dt <![CDATA[>=]]> #{searchStartDt}
+			</if>
+			<if test='searchEndDt != "" and searchEndDt != null'>
+				AND document_dt <![CDATA[<=]]> #{searchEndDt}
+			</if>
+			<if test='searchDocumentName != "" and searchDocumentName != null'>
+				AND title LIKE '%'||#{searchDocumentName}||'%'
+			</if>
+			<if test='searchProjectName != "" and searchProjectName != null'>
+				AND project_id LIKE '%'||#{searchProjectName}||'%'
+			</if>
+	</select>
+	
+	<select id="searching" parameterType="DocumentVO" resultType="DocumentVO">
+				SELECT	t.*
+		FROM	(SELECT	ROW_NUMBER() over(order by crt_dt desc) as rnum,
+						id, title, document_no, document_dt, project_id , FN_PROJECT_NAME(project_id) project_name ,
+                		FN_MEMBER_NAME(crt_id) member_name ,crt_dt
+				FROM	${tableName}
+				WHERE	del_dt IS NULL
+					<if test='searchYear != "" and searchYear != null'>
+						AND (SUBSTR(document_dt, 0, 4)	= #{searchYear})
+					</if>
+					<if test='searchStartDt != "" and searchStartDt != null'>
+						AND document_dt <![CDATA[>=]]> #{searchStartDt}
+					</if>
+					<if test='searchEndDt != "" and searchEndDt != null'>
+						AND document_dt <![CDATA[<=]]> #{searchEndDt}
+					</if>
+					<if test='searchDocumentName != "" and searchDocumentName != null'>
+						AND title LIKE '%'||#{searchDocumentName}||'%'
+					</if>
+					<if test='searchProjectName != "" and searchProjectName != null'>
+						AND FN_PROJECT_NAME(project_id) LIKE '%'||#{searchProjectName}||'%'
+					</if>
+		    	) t
+		    	WHERE	rnum BETWEEN #{firstIndex} AND #{lastIndex}
+		    	ORDER BY rnum
+	</select>
+</mapper>
